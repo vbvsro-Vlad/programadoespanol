@@ -404,7 +404,11 @@
         //   is_base_phrase — базовая ли это фраза (стартовый набор);
         //   last_reviewed  — дата последнего повторения (ISO-строка) или null.
         // ==========================================================
-        let phrases = [
+        // Базовый набор фраз по ТЗ (константа). Рабочий массив `phrases`
+        // инициализируется его копией; mergeDefaultPhrases() (см. ниже)
+        // добирает недостающие id из него в сохранённые в localStorage
+        // данные — поэтому дефолты храним отдельно, чтобы их не мутировать.
+        const DEFAULT_PHRASES = [
             {
                 id: 1,
                 spanish: "Hola, me llamo Ana.",
@@ -591,8 +595,50 @@
                 status: "new",
                 is_base_phrase: false,
                 last_reviewed: null
+            },
+
+            // ==========================================================
+            // БАЗОВЫЕ ФРАЗЫ-ВОПРОСЫ ДЛЯ ЭТАПА 4 (Разговорная практика).
+            // ИСПРАВЛЕНИЕ БАГА: раньше в базе была только одна базовая
+            // фраза («Hola, me llamo Ana.»), поэтому «случайный» выбор
+            // Math.random() всегда давал один и тот же вопрос. Теперь
+            // добавлены вопросы-катализаторы диалога со статусом
+            // "mastered" и is_base_phrase: true — Этап 4 выбирает из
+            // них случайный каждый раз.
+            // ==========================================================
+            {
+                id: 21,
+                spanish: "¿Qué hiciste hoy?",
+                russian: "Что ты делал сегодня?",
+                situation: "Small talk с другом о прошедшем дне",
+                status: "mastered",
+                is_base_phrase: true,
+                last_reviewed: "2026-10-30"
+            },
+            {
+                id: 22,
+                spanish: "¿Qué tal tu día?",
+                russian: "Как прошел твой день?",
+                situation: "Вечерний разговор с близким человеком",
+                status: "mastered",
+                is_base_phrase: true,
+                last_reviewed: "2026-10-30"
+            },
+            {
+                id: 23,
+                spanish: "¿Tienes planes para mañana?",
+                russian: "У тебя есть планы на завтра?",
+                situation: "Договариваетесь о встрече с другом",
+                status: "mastered",
+                is_base_phrase: true,
+                last_reviewed: "2026-10-30"
             }
         ];
+
+        // Рабочий массив фраз — копия базового набора. loadData() может
+        // заменить его данными из localStorage (с последующей миграцией
+        // недостающих фраз через mergeDefaultPhrases()).
+        let phrases = [...DEFAULT_PHRASES];
 
         // ==========================================================
         // Настройки таймеров (в секундах)
@@ -655,9 +701,33 @@
                 if (Array.isArray(data.phrases) && data.phrases.length > 0) {
                     phrases = data.phrases;
                 }
+
+                mergeDefaultPhrases(); // синхронизируем базу с новым кодом (см. ниже)
             } catch (e) {
                 // Повреждённый JSON — работаем со значениями по умолчанию
                 console.error("Не удалось прочитать данные:", e);
+            }
+        }
+
+        /**
+         * mergeDefaultPhrases() — мягкая миграция базы фраз.
+         *
+         * ИСПРАВЛЕНИЕ БАГА Этапа 4: у пользователей, уже открывавших
+         * приложение раньше, в localStorage сохранён СТАРЫЙ набор фраз,
+         * где была всего одна базовая фраза («Hola, me llamo Ana.»).
+         * Поэтому «случайный» вопрос на Этапе 4 всегда повторялся.
+         *
+         * Функция добавляет в сохранённый массив только ТЕ фразы из
+         * кода, которых там ещё нет (сверка по id), не трогая статусы,
+         * last_reviewed и весь пользовательский прогресс. Вызывается из
+         * loadData() после чтения localStorage.
+         */
+        function mergeDefaultPhrases() {
+            const existingIds = new Set(phrases.map(p => p.id));
+            const missing = DEFAULT_PHRASES.filter(p => !existingIds.has(p.id));
+            if (missing.length > 0) {
+                phrases = phrases.concat(missing);
+                saveData(); // сразу сохраняем обновлённую базу
             }
         }
 
@@ -1576,6 +1646,9 @@
 
         // Текущий вопрос диалога (случайная базовая фраза, is_base_phrase === true)
         let stage4Question = null;
+        // id предыдущего заданного вопроса — чтобы не повторять одну и ту же
+        // фразу подряд (исправление бага «постоянно один и тот же вопрос»)
+        let stage4LastQuestionId = null;
         // Счётчик заданных вопросов за прохождение этапа
         let stage4QuestionCount = 0;
         // Распознанный текст ответа ученика (для кнопки «Прослушать свой ответ»)
@@ -1673,11 +1746,30 @@
          * pickRandomBasePhrase() — выбирает СЛУЧАЙНУЮ базовую фразу
          * (is_base_phrase === true) из массива phrases.
          * Если базовых фраз нет — вернёт null.
+         *
+         * ИСПРАВЛЕНИЕ БАГА «одного и того же вопроса»: в базе теперь 4
+         * базовые фразы-вопроса (Hola, me llamo Ana / ¿Qué hiciste hoy? /
+         * ¿Qué tal tu día? / ¿Tienes planes para mañana?), поэтому каждый
+         * вызов Math.random() даёт новый вопрос. Дополнительно запоминаем
+         * предыдущий вопрос и при совпадении делаем ещё одну попытку —
+         * чтобы даже короткая сессия не выглядела «заевшей».
          */
         function pickRandomBasePhrase() {
             const basePhrases = phrases.filter(p => p.is_base_phrase === true);
             if (basePhrases.length === 0) return null;
-            return basePhrases[Math.floor(Math.random() * basePhrases.length)];
+
+            let candidate = basePhrases[Math.floor(Math.random() * basePhrases.length)];
+
+            // Не повторяем предыдущий вопрос подряд (если выбирать есть из чего)
+            if (candidate.id === stage4LastQuestionId && basePhrases.length > 1) {
+                let guard = 0;
+                while (candidate.id === stage4LastQuestionId && guard < 10) {
+                    candidate = basePhrases[Math.floor(Math.random() * basePhrases.length)];
+                    guard++;
+                }
+            }
+            stage4LastQuestionId = candidate.id;
+            return candidate;
         }
 
         /**
