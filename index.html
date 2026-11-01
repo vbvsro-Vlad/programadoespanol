@@ -20,10 +20,17 @@
 
     <!-- ==================== ШАПКА ПРИЛОЖЕНИЯ ==================== -->
     <header class="bg-white/80 backdrop-blur shadow-sm sticky top-0 z-10">
-        <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
             <h1 class="text-xl sm:text-2xl font-bold text-orange-600">
                 ¡Hola! <span class="hidden sm:inline text-gray-700 font-medium">— испанский день за днём</span>
             </h1>
+
+            <!-- Глобальный таймер сессии (20 минут). Виден только во время урока. -->
+            <div id="session-timer" class="hidden items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1.5 text-sm font-semibold text-orange-700 tabular-nums">
+                <span aria-hidden="true">⏱️</span>
+                <span id="session-timer-text">20:00</span>
+            </div>
+
             <!-- Индикатор текущего дня и серии (данные из user_progress) -->
             <div class="text-right text-sm leading-tight">
                 <p id="header-day" class="font-semibold text-gray-700">День 1</p>
@@ -33,18 +40,95 @@
     </header>
 
     <!-- ==================== ОСНОВНОЙ КОНТЕЙНЕР ==================== -->
-    <!-- Здесь позже будут располагаться 5 экранов этапов урока.
-         Сейчас — заглушка-приветствие, чтобы страница была рабочей. -->
+    <!-- Здесь располагаются экраны приложения. Каждый экран — отдельная
+         <section>, показывается только одна из них в каждый момент времени.
+         Всего будет 5 экранов этапов; сейчас реализованы стартовый экран
+         и Этап 1 (Повторение), плюс заглушка под Этап 2. -->
     <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-6">
-        <section class="bg-white rounded-2xl shadow p-6 sm:p-8 text-center">
+
+        <!-- ========== ЭКРАН 0: СТАРТОВЫЙ ЭКРАН ========== -->
+        <section id="screen-start" class="bg-white rounded-2xl shadow p-6 sm:p-8 text-center">
             <h2 class="text-lg sm:text-xl font-semibold mb-2">Добро пожаловать! 🇪🇸</h2>
             <p class="text-gray-500 text-sm sm:text-base mb-6">
-                Фундамент приложения готов. Экраны этапов появятся здесь на следующих шагах.
+                Нажмите кнопку ниже, чтобы запустить 20-минутный урок.
+                Первый этап — повторение уже изученных фраз.
             </p>
 
-            <!-- Небольшая демонстрация загруженных данных (временно, для отладки) -->
-            <div id="debug-info" class="text-left text-xs bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
-                <!-- Содержимое генерируется скриптом ниже -->
+            <!-- Большая красивая кнопка старта урока -->
+            <button onclick="startSession()"
+                    class="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 transition text-white text-lg font-bold py-4 px-10 rounded-2xl shadow-lg shadow-orange-200">
+                ▶ Начать урок
+            </button>
+
+            <div class="mt-8 text-left text-xs bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
+                <p class="font-semibold text-gray-500">Ваш набор фраз:</p>
+                <ul id="start-phrase-list" class="space-y-1">
+                    <!-- Список фраз генерируется скриптом ниже -->
+                </ul>
+            </div>
+        </section>
+
+        <!-- ========== ЭКРАН УРОКА (внутри меняются этапы) ========== -->
+        <section id="screen-lesson" class="hidden">
+
+            <!-- ===== ЭТАП 1: ПОВТОРЕНИЕ ===== -->
+            <div id="stage1-card" class="bg-white rounded-2xl shadow p-6 sm:p-8 text-center hidden">
+                <!-- Заголовок этапа + локальный таймер этапа (3 минуты) -->
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-base sm:text-lg font-bold text-gray-700">
+                        📖 Этап 1: Повторение
+                    </h2>
+                    <span id="stage1-timer-text"
+                          class="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700 tabular-nums">
+                        3:00
+                    </span>
+                </div>
+
+                <!-- Прогресс: какая по счёту фраза показывается -->
+                <p id="stage1-progress" class="text-xs text-gray-400 mb-6">Фраза 1 из 3</p>
+
+                <!-- Блок текущей фразы: ситуация и перевод видны, испанский скрыт -->
+                <p id="stage1-situation" class="text-2xl sm:text-3xl font-bold text-orange-600 mb-3">
+                    <!-- situation -->
+                </p>
+                <p id="stage1-russian" class="text-lg sm:text-xl text-gray-600 mb-8">
+                    <!-- russian -->
+                </p>
+
+                <!-- Испанский текст: скрыт до нажатия «Проверить» -->
+                <p id="stage1-spanish" class="hidden mb-8 text-3xl sm:text-4xl font-extrabold text-gray-800 bg-amber-50 border border-amber-200 rounded-xl py-4 px-3">
+                    <!-- spanish -->
+                </p>
+
+                <!-- Кнопка «Проверить»: озвучивает фразу и показывает испанский текст -->
+                <button id="stage1-btn-check" onclick="revealSpanish()"
+                        class="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 active:scale-95 transition text-white text-lg font-bold py-4 px-12 rounded-2xl shadow-md">
+                    Проверить
+                </button>
+
+                <!-- Кнопки оценки: появляются после «Проверить» -->
+                <div id="stage1-answer-buttons" class="hidden flex-col sm:flex-row gap-3 justify-center">
+                    <button onclick="answerStage1(true)"
+                            class="w-full sm:w-auto bg-green-500 hover:bg-green-600 active:scale-95 transition text-white text-lg font-bold py-4 px-8 rounded-2xl shadow-md">
+                        ✓ Вспомнил
+                    </button>
+                    <button onclick="answerStage1(false)"
+                            class="w-full sm:w-auto bg-red-500 hover:bg-red-600 active:scale-95 transition text-white text-lg font-bold py-4 px-8 rounded-2xl shadow-md">
+                        ✗ Не вспомнил
+                    </button>
+                </div>
+
+                <!-- Сообщение, если фраз для повторения не нашлось -->
+                <p id="stage1-empty" class="hidden text-gray-500 text-sm sm:text-base py-6">
+                    Нет фраз для повторения. Переходим к Этапу 2…
+                </p>
+            </div>
+
+            <!-- ===== ЗАГЛУШКА: ЭТАП 2 (Аудирование) ===== -->
+            <div id="stage2-placeholder" class="bg-white rounded-2xl shadow p-10 sm:p-16 text-center hidden">
+                <p class="text-xl sm:text-2xl font-bold text-gray-500">
+                    🎧 Этап 2: Аудирование — в разработке
+                </p>
             </div>
         </section>
     </main>
@@ -135,6 +219,20 @@
         ];
 
         // ==========================================================
+        // Настройки таймеров (в секундах)
+        // ==========================================================
+        const SESSION_DURATION = 1200; // глобальный таймер сессии: 20 минут
+        const STAGE1_DURATION  = 180;  // локальный таймер Этапа 1: 3 минуты
+
+        // Идентификаторы интервалов setInterval, чтобы их можно было остановить
+        let sessionIntervalId = null;
+        let stage1IntervalId  = null;
+
+        // Текущее оставшееся время таймеров (секунды)
+        let sessionTimeLeft = SESSION_DURATION;
+        let stage1TimeLeft  = STAGE1_DURATION;
+
+        // ==========================================================
         // saveData() — сохраняет user_progress и phrases в localStorage.
         // Данные сериализуются в JSON и записываются под одним ключом.
         // ==========================================================
@@ -177,33 +275,337 @@
         }
 
         // ==========================================================
-        // Отрисовка шапки и отладочного блока (минимальный UI)
+        // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        // ==========================================================
+
+        /**
+         * formatTime(seconds) — превращает число секунд в строку "М:СС",
+         * например 125 -> "2:05". Используется для отображения таймеров.
+         */
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return m + ':' + String(s).padStart(2, '0');
+        }
+
+        /**
+         * showScreen(screenId) — показывает один экран main-контейнера
+         * и скрывает остальные (простая SPA-навигация).
+         */
+        function showScreen(screenId) {
+            document.querySelectorAll('main > section').forEach(sec => {
+                sec.classList.toggle('hidden', sec.id !== screenId);
+            });
+        }
+
+        /**
+         * showStage(stageId) — переключает видимый этап внутри экрана урока.
+         */
+        function showStage(stageId) {
+            ['stage1-card', 'stage2-placeholder'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (id === stageId) {
+                    el.classList.remove('hidden');
+                    // flex-контейнеры с кнопками Этапа 1 требуют classList «flex»
+                    if (id === 'stage1-card') el.classList.add('block');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+        }
+
+        /**
+         * shuffleAndTake(array, count) — возвращает до `count` случайных
+         * элементов из массива (перемешивание Фишера–Йетса, без повторов).
+         */
+        function shuffleAndTake(arr, count) {
+            const copy = arr.slice();
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy.slice(0, count);
+        }
+
+        /**
+         * speakSpanish(text) — озвучивает испанский текст через Web Speech API.
+         * Устанавливаем язык произношения 'es-ES' согласно ТЗ.
+         */
+        function speakSpanish(text) {
+            // Браузер может не поддерживать speechSynthesis — проверяем аккуратно
+            if (!('speechSynthesis' in window)) {
+                console.warn('Web Speech API не поддерживается этим браузером.');
+                return;
+            }
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'es-ES';   // испанское произношение
+            utterance.rate = 0.9;       // чуть медленнее обычного — для учебного эффекта
+            window.speechSynthesis.cancel(); // отменяем предыдущую озвучку, если есть
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // ==========================================================
+        // ГЛОБАЛЬНЫЙ ТАЙМЕР СЕССИИ (20 минут)
+        // ==========================================================
+
+        /**
+         * startSessionTimer() — запускает обратный отсчёт 20-минутной сессии.
+         * Таймер отображается в шапке. По истечении времени сессия завершается.
+         */
+        function startSessionTimer() {
+            sessionTimeLeft = SESSION_DURATION;
+            const timerEl = document.getElementById('session-timer');
+            timerEl.classList.remove('hidden');
+            timerEl.classList.add('flex');
+            updateSessionTimerLabel();
+
+            clearInterval(sessionIntervalId); // на всякий случай останавливаем старый
+            sessionIntervalId = setInterval(() => {
+                sessionTimeLeft--;
+                updateSessionTimerLabel();
+
+                if (sessionTimeLeft <= 0) {
+                    // Время сессии вышло — останавливаем всё и завершаем урок
+                    endSession();
+                }
+            }, 1000);
+        }
+
+        function updateSessionTimerLabel() {
+            document.getElementById('session-timer-text').textContent =
+                formatTime(sessionTimeLeft);
+        }
+
+        /**
+         * endSession() — корректно завершает урок: останавливает оба таймера.
+         * (Полный финальный экран появится на следующих шагах.)
+         */
+        function endSession() {
+            clearInterval(sessionIntervalId);
+            clearInterval(stage1IntervalId);
+            sessionIntervalId = null;
+            stage1IntervalId = null;
+            document.getElementById('session-timer').classList.add('hidden');
+        }
+
+        /**
+         * startSession() — точка входа: скрывает стартовый экран,
+         * показывает экран урока, запускает глобальный таймер и Этап 1.
+         */
+        function startSession() {
+            showScreen('screen-lesson');
+            startSessionTimer();
+            startStage1();
+        }
+
+        // ==========================================================
+        // ЭТАП 1: ПОВТОРЕНИЕ (3 минуты)
+        // ==========================================================
+
+        // Список фраз, выбранных для повторения на текущем прохождении этапа
+        let stage1Queue = [];
+        // Индекс текущей показываемой фразы в stage1Queue
+        let stage1Index = 0;
+
+        /**
+         * selectReviewPhrases() — выбирает фразы для повторения по ТЗ:
+         *   1) берём 3–5 случайных фраз со статусом 'working' или 'review';
+         *   2) если таких нет — 3 случайные фразы со статусом 'mastered';
+         *   3) если и mastered нет — пустой массив (покажем сообщение).
+         */
+        function selectReviewPhrases() {
+            const reviewCandidates = phrases.filter(p =>
+                p.status === 'working' || p.status === 'review');
+
+            if (reviewCandidates.length > 0) {
+                // От 3 до 5 штук: берём минимум 3, максимум 5 (или сколько есть)
+                const count = Math.min(5, Math.max(3, reviewCandidates.length));
+                return shuffleAndTake(reviewCandidates, count);
+            }
+
+            const masteredCandidates = phrases.filter(p => p.status === 'mastered');
+            if (masteredCandidates.length > 0) {
+                return shuffleAndTake(masteredCandidates, 3);
+            }
+
+            return []; // повторять нечего
+        }
+
+        /**
+         * startStage1() — запускает Этап 1: локальный таймер на 3 минуты,
+         * выбор фраз и показ интерфейса первой карточки.
+         */
+        function startStage1() {
+            showStage('stage1-card');
+
+            // --- запуск локального таймера этапа ---
+            stage1TimeLeft = STAGE1_DURATION;
+            document.getElementById('stage1-timer-text').textContent =
+                formatTime(stage1TimeLeft);
+
+            clearInterval(stage1IntervalId); // защита от двойного запуска
+            stage1IntervalId = setInterval(() => {
+                stage1TimeLeft--;
+                document.getElementById('stage1-timer-text').textContent =
+                    formatTime(stage1TimeLeft);
+
+                if (stage1TimeLeft <= 0) {
+                    // Время этапа вышло — переходим дальше
+                    clearInterval(stage1IntervalId);
+                    stage1IntervalId = null;
+                    startStage2();
+                }
+            }, 1000);
+
+            // --- выбор фраз и старт показа ---
+            stage1Queue = selectReviewPhrases();
+            stage1Index = 0;
+
+            if (stage1Queue.length === 0) {
+                // Нет фраз для повторения: сообщение + автопереход через 3 сек
+                document.getElementById('stage1-situation').classList.add('hidden');
+                document.getElementById('stage1-russian').classList.add('hidden');
+                document.getElementById('stage1-progress').classList.add('hidden');
+                document.getElementById('stage1-btn-check').classList.add('hidden');
+                document.getElementById('stage1-empty').classList.remove('hidden');
+
+                setTimeout(() => {
+                    clearInterval(stage1IntervalId);
+                    stage1IntervalId = null;
+                    startStage2();
+                }, 3000);
+                return;
+            }
+
+            showCurrentPhrase();
+        }
+
+        /**
+         * showCurrentPhrase() — отображает текущую фразу из очереди:
+         * ситуация и перевод видны, испанский скрыт, кнопки в исходном состоянии.
+         */
+        function showCurrentPhrase() {
+            const phrase = stage1Queue[stage1Index];
+
+            // Прячем «пустое» состояние и восстанавливаем рабочие элементы
+            document.getElementById('stage1-empty').classList.add('hidden');
+            document.getElementById('stage1-situation').classList.remove('hidden');
+            document.getElementById('stage1-russian').classList.remove('hidden');
+            document.getElementById('stage1-progress').classList.remove('hidden');
+
+            // Заполняем тексты
+            document.getElementById('stage1-situation').textContent = phrase.situation;
+            document.getElementById('stage1-russian').textContent   = phrase.russian;
+            document.getElementById('stage1-spanish').textContent   = phrase.spanish;
+            document.getElementById('stage1-progress').textContent  =
+                'Фраза ' + (stage1Index + 1) + ' из ' + stage1Queue.length;
+
+            // Испанский текст снова скрыт
+            document.getElementById('stage1-spanish').classList.add('hidden');
+
+            // Кнопка «Проверить» видна, кнопки оценки — нет
+            document.getElementById('stage1-btn-check').classList.remove('hidden');
+            const answers = document.getElementById('stage1-answer-buttons');
+            answers.classList.add('hidden');
+            answers.classList.remove('flex');
+        }
+
+        /**
+         * revealSpanish() — по нажатию «Проверить»: озвучивает фразу,
+         * показывает испанский текст и меняет набор кнопок.
+         */
+        function revealSpanish() {
+            const phrase = stage1Queue[stage1Index];
+
+            // Озвучка через Web Speech API (lang = 'es-ES' внутри speakSpanish)
+            speakSpanish(phrase.spanish);
+
+            // Показываем испанский текст
+            document.getElementById('stage1-spanish').classList.remove('hidden');
+
+            // Меняем кнопки: «Проверить» → «Вспомнил» / «Не вспомнил»
+            document.getElementById('stage1-btn-check').classList.add('hidden');
+            const answers = document.getElementById('stage1-answer-buttons');
+            answers.classList.remove('hidden');
+            answers.classList.add('flex');
+        }
+
+        /**
+         * answerStage1(recalled) — обработка ответа пользователя.
+         *   recalled = true  — «Вспомнил»  → обновляем last_reviewed;
+         *   recalled = false — «Не вспомнил».
+         * Затем переходим к следующей фразе или завершаем этап.
+         */
+        function answerStage1(recalled) {
+            const phrase = stage1Queue[stage1Index];
+
+            // Отмечаем дату повторения у фразы (статус пока не меняем —
+            // это будет логика следующих шагов)
+            phrase.last_reviewed = new Date().toISOString().slice(0, 10);
+            saveData(); // сохраняем обновлённый прогресс
+
+            stage1Index++;
+
+            if (stage1Index < stage1Queue.length) {
+                showCurrentPhrase(); // следующая фраза
+            } else {
+                // Фразы закончились раньше таймера — сразу к Этапу 2
+                clearInterval(stage1IntervalId);
+                stage1IntervalId = null;
+                startStage2();
+            }
+        }
+
+        // ==========================================================
+        // ЭТАП 2: ЗАГЛУШКА (полная реализация — на следующих шагах)
+        // ==========================================================
+
+        /**
+         * startStage2() — функция-заглушка: останавливает таймер Этапа 1
+         * и показывает сообщение о том, что этап ещё в разработке.
+         */
+        function startStage2() {
+            clearInterval(stage1IntervalId);
+            stage1IntervalId = null;
+            showStage('stage2-placeholder');
+        }
+
+        // ==========================================================
+        // Отрисовка шапки и списка фраз на стартовом экране
         // ==========================================================
         function renderHeader() {
             document.getElementById('header-day').textContent = 'День ' + user_progress.current_day;
             document.getElementById('header-streak').textContent = '🔥 Серия: ' + user_progress.streak;
         }
 
-        function renderDebugInfo() {
-            const box = document.getElementById('debug-info');
-            const statusLabels = { new: 'новая', learning: 'изучается', mastered: 'выучена' };
+        function renderPhraseList() {
+            const list = document.getElementById('start-phrase-list');
+            const statusLabels = {
+                new: 'новая', learning: 'изучается', working: 'в работе',
+                review: 'на повторении', mastered: 'выучена'
+            };
 
-            let html = '<p class="font-semibold text-gray-600">Загруженные фразы:</p>';
+            list.innerHTML = '';
             phrases.forEach(p => {
-                html += '<p><span class="font-mono text-orange-600">' + p.spanish + '</span> — '
-                      + p.russian + ' <span class="text-gray-400">('
-                      + (statusLabels[p.status] || p.status)
-                      + (p.is_base_phrase ? ', базовая' : '') + ')</span></p>';
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between gap-2';
+                li.innerHTML =
+                    '<span class="font-mono text-orange-600 truncate">' + p.spanish + '</span>' +
+                    '<span class="text-gray-400 shrink-0">' +
+                        (statusLabels[p.status] || p.status) +
+                        (p.is_base_phrase ? ' · базовая' : '') +
+                    '</span>';
+                list.appendChild(li);
             });
-            box.innerHTML = html;
         }
 
         // ==========================================================
         // СТАРТ ПРИЛОЖЕНИЯ: читаем сохранённые данные и обновляем UI
         // ==========================================================
-        loadData();       // загружаем прогресс и фразы из localStorage
-        renderHeader();   // показываем день и серию в шапке
-        renderDebugInfo();// выводим список фраз для отладки
+        loadData();          // загружаем прогресс и фразы из localStorage
+        renderHeader();      // показываем день и серию в шапке
+        renderPhraseList();  // выводим список фраз на стартовом экране
 
         // Текущая дата в подвале (косметика)
         document.getElementById('footer-date').textContent =
