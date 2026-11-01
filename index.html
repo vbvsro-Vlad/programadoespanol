@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <!-- Адаптивность для мобильных устройств -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Hola! — Испанский язык день за днём</title>
+
+    <!-- TailwindCSS через CDN (версия для прототипов) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Базовые стили вне Tailwind: только шрифт и плавность -->
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-amber-50 to-orange-50 text-gray-800 min-h-screen flex flex-col">
+
+    <!-- ==================== ШАПКА ПРИЛОЖЕНИЯ ==================== -->
+    <header class="bg-white/80 backdrop-blur shadow-sm sticky top-0 z-10">
+        <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+            <h1 class="text-xl sm:text-2xl font-bold text-orange-600">
+                ¡Hola! <span class="hidden sm:inline text-gray-700 font-medium">— испанский день за днём</span>
+            </h1>
+            <!-- Индикатор текущего дня и серии (данные из user_progress) -->
+            <div class="text-right text-sm leading-tight">
+                <p id="header-day" class="font-semibold text-gray-700">День 1</p>
+                <p id="header-streak" class="text-orange-500">🔥 Серия: 0</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==================== ОСНОВНОЙ КОНТЕЙНЕР ==================== -->
+    <!-- Здесь позже будут располагаться 5 экранов этапов урока.
+         Сейчас — заглушка-приветствие, чтобы страница была рабочей. -->
+    <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-6">
+        <section class="bg-white rounded-2xl shadow p-6 sm:p-8 text-center">
+            <h2 class="text-lg sm:text-xl font-semibold mb-2">Добро пожаловать! 🇪🇸</h2>
+            <p class="text-gray-500 text-sm sm:text-base mb-6">
+                Фундамент приложения готов. Экраны этапов появятся здесь на следующих шагах.
+            </p>
+
+            <!-- Небольшая демонстрация загруженных данных (временно, для отладки) -->
+            <div id="debug-info" class="text-left text-xs bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
+                <!-- Содержимое генерируется скриптом ниже -->
+            </div>
+        </section>
+    </main>
+
+    <!-- ==================== ПОДВАЛ ==================== -->
+    <footer class="bg-white/80 border-t border-gray-200 mt-8">
+        <div class="max-w-3xl mx-auto px-4 py-4 text-center text-xs sm:text-sm text-gray-400">
+            <p>¡Buen camino! Путь к испанскому начинается с одной фразы.</p>
+            <p class="mt-1">Учебный проект · v0.1 · <span id="footer-date"></span></p>
+        </div>
+    </footer>
+
+    <!-- ==================== ЛОГИКА ПРИЛОЖЕНИЯ ==================== -->
+    <script>
+        // ==========================================================
+        // КЛЮЧ localStorage, под которым хранятся все данные приложения
+        // ==========================================================
+        const STORAGE_KEY = 'spanish_app_data';
+
+        // ==========================================================
+        // user_progress — прогресс пользователя по ТЗ:
+        //   current_day      — текущий день обучения;
+        //   streak           — серия дней подряд без пропусков;
+        //   last_active_date — дата последнего захода (ISO-строка) или null.
+        // ==========================================================
+        let user_progress = {
+            current_day: 1,
+            streak: 0,
+            last_active_date: null
+        };
+
+        // ==========================================================
+        // phrases — массив изучаемых фраз. Поля каждой фразы:
+        //   id             — уникальный идентификатор;
+        //   spanish        — фраза на испанском;
+        //   russian        — перевод на русский;
+        //   situation      — жизненная ситуация, где фраза применяется;
+        //   status         — статус изучения: "new" | "learning" | "mastered";
+        //   is_base_phrase — базовая ли это фраза (стартовый набор);
+        //   last_reviewed  — дата последнего повторения (ISO-строка) или null.
+        // ==========================================================
+        let phrases = [
+            {
+                id: 1,
+                spanish: "Hola, me llamo Ana.",
+                russian: "Привет, меня зовут Ана.",
+                situation: "Первое знакомство",
+                status: "mastered",   // выученная базовая фраза
+                is_base_phrase: true, // обязательная базовая фраза по ТЗ
+                last_reviewed: "2026-10-30"
+            },
+            {
+                id: 2,
+                spanish: "¿Cómo estás?",
+                russian: "Как дела?",
+                situation: "Приветствие другу",
+                status: "new",        // новая фраза — ещё не изучена
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 3,
+                spanish: "Gracias mucho.",
+                russian: "Большое спасибо.",
+                situation: "В кафе или магазине",
+                status: "new",        // ещё одна новая фраза
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 4,
+                spanish: "Adiós, hasta mañana.",
+                russian: "До свидания, до завтра.",
+                situation: "Прощание",
+                status: "learning",   // в процессе изучения
+                is_base_phrase: false,
+                last_reviewed: "2026-10-31"
+            },
+            {
+                id: 5,
+                spanish: "No entiendo.",
+                russian: "Я не понимаю.",
+                situation: "Когда речь слишком быстрая",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            }
+        ];
+
+        // ==========================================================
+        // saveData() — сохраняет user_progress и phrases в localStorage.
+        // Данные сериализуются в JSON и записываются под одним ключом.
+        // ==========================================================
+        function saveData() {
+            try {
+                const data = {
+                    user_progress: user_progress,
+                    phrases: phrases
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            } catch (e) {
+                // Например, localStorage недоступен (приватный режим браузера)
+                console.error("Не удалось сохранить данные:", e);
+            }
+        }
+
+        // ==========================================================
+        // loadData() — читает данные из localStorage.
+        // Если сохранённых данных нет (первый запуск), оставляем
+        // значения по умолчанию. Вызывается при старте страницы.
+        // ==========================================================
+        function loadData() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return; // первый запуск — ничего сохранять не нужно
+
+                const data = JSON.parse(raw);
+
+                // Аккуратно подменяем только те поля, что реально присутствуют
+                if (data.user_progress && typeof data.user_progress === 'object') {
+                    user_progress = { ...user_progress, ...data.user_progress };
+                }
+                if (Array.isArray(data.phrases) && data.phrases.length > 0) {
+                    phrases = data.phrases;
+                }
+            } catch (e) {
+                // Повреждённый JSON — работаем со значениями по умолчанию
+                console.error("Не удалось прочитать данные:", e);
+            }
+        }
+
+        // ==========================================================
+        // Отрисовка шапки и отладочного блока (минимальный UI)
+        // ==========================================================
+        function renderHeader() {
+            document.getElementById('header-day').textContent = 'День ' + user_progress.current_day;
+            document.getElementById('header-streak').textContent = '🔥 Серия: ' + user_progress.streak;
+        }
+
+        function renderDebugInfo() {
+            const box = document.getElementById('debug-info');
+            const statusLabels = { new: 'новая', learning: 'изучается', mastered: 'выучена' };
+
+            let html = '<p class="font-semibold text-gray-600">Загруженные фразы:</p>';
+            phrases.forEach(p => {
+                html += '<p><span class="font-mono text-orange-600">' + p.spanish + '</span> — '
+                      + p.russian + ' <span class="text-gray-400">('
+                      + (statusLabels[p.status] || p.status)
+                      + (p.is_base_phrase ? ', базовая' : '') + ')</span></p>';
+            });
+            box.innerHTML = html;
+        }
+
+        // ==========================================================
+        // СТАРТ ПРИЛОЖЕНИЯ: читаем сохранённые данные и обновляем UI
+        // ==========================================================
+        loadData();       // загружаем прогресс и фразы из localStorage
+        renderHeader();   // показываем день и серию в шапке
+        renderDebugInfo();// выводим список фраз для отладки
+
+        // Текущая дата в подвале (косметика)
+        document.getElementById('footer-date').textContent =
+            new Date().toLocaleDateString('ru-RU');
+
+        // Сохраняем состояние после загрузки, чтобы при следующем
+        // открытии данные уже лежали в localStorage
+        saveData();
+    </script>
+</body>
+</html>
