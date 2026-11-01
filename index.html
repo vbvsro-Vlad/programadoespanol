@@ -254,10 +254,108 @@
                 </p>
             </div>
 
-            <!-- ===== ЗАГЛУШКА: ЭТАП 4 (Разговорная практика) ===== -->
-            <div id="stage4-placeholder" class="bg-white rounded-2xl shadow p-10 sm:p-16 text-center hidden">
+            <!-- ===== ЭТАП 4: РАЗГОВОРНАЯ ПРАКТИКА (5 минут) =====
+                 Чистый экран: крупный заголовок и кнопка «Начать диалог».
+                 Далее: случайный базовый вопрос озвучивается по-испански,
+                 ученик отвечает вслух (распознавание речи), запись сохраняется
+                 для самопрослушивания. -->
+            <div id="stage4-card" class="bg-white rounded-2xl shadow p-6 sm:p-8 text-center hidden">
+                <!-- Заголовок этапа + локальный таймер этапа (5 минут) -->
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-base sm:text-lg font-bold text-gray-700">
+                        💬 Этап 4: Разговорная практика
+                    </h2>
+                    <span id="stage4-timer-text"
+                          class="rounded-full bg-teal-100 px-3 py-1 text-sm font-semibold text-teal-700 tabular-nums">
+                        5:00
+                    </span>
+                </div>
+
+                <!-- Счётчик заданных вопросов за этап -->
+                <p id="stage4-progress" class="text-xs text-gray-400 mb-8">Вопрос 1</p>
+
+                <!-- ---------- ПОДЭКРАН A: исходный экран этапа ---------- -->
+                <div id="stage4-intro" class="py-6">
+                    <!-- Крупный текст по центру экрана (по ТЗ) -->
+                    <p class="text-4xl sm:text-5xl font-extrabold text-gray-800 mb-4">
+                        Разговорная практика
+                    </p>
+                    <p class="text-gray-500 text-sm sm:text-base mb-10 max-w-md mx-auto">
+                        Испанский задаст вам случайный вопрос. Ответьте на него
+                        вслух по-испански, а затем прослушайте свой ответ.
+                    </p>
+                    <!-- Большая красивая кнопка старта диалога -->
+                    <button onclick="startDialogue()"
+                            class="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 active:scale-95 transition text-white text-lg font-bold py-4 px-12 rounded-2xl shadow-lg shadow-teal-200">
+                        💬 Начать диалог
+                    </button>
+                </div>
+
+                <!-- ---------- ПОДЭКРАН B: ход диалога ---------- -->
+                <div id="stage4-dialogue" class="hidden py-4">
+                    <!-- Текст вопроса на испанском (появляется после озвучки).
+                         Перевод вопроса скрыт — как и испанский текст ответа. -->
+                    <p id="stage4-question-es"
+                       class="text-3xl sm:text-4xl font-extrabold text-teal-700 mb-10">
+                        <!-- spanish question -->
+                    </p>
+
+                    <!-- Индикатор «Слушаю ваш ответ...» с пульсирующим микрофоном -->
+                    <div id="stage4-listening" class="hidden flex flex-col items-center gap-3 py-4">
+                        <span class="text-6xl animate-pulse" aria-hidden="true">🎙️</span>
+                        <p class="text-lg font-bold text-red-500 animate-pulse">Слушаю ваш ответ...</p>
+                        <!-- Ученик может досрочно завершить запись -->
+                        <button onclick="stopAnswerRecording()"
+                                class="mt-2 rounded-xl bg-gray-100 px-5 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-200 active:scale-95 transition">
+                            Остановить запись
+                        </button>
+                    </div>
+
+                    <!-- Панель после окончания записи: кнопки самотушки -->
+                    <div id="stage4-after" class="hidden space-y-4">
+                        <!-- Кнопка «Прослушать свой ответ» (воспроизведение записи) -->
+                        <button id="stage4-btn-playback" onclick="playOwnAnswer()"
+                                class="w-full sm:w-auto bg-sky-500 hover:bg-sky-600 active:scale-95 transition text-white text-lg font-bold py-4 px-10 rounded-2xl shadow-md">
+                            ▶️ Прослушать свой ответ
+                        </button>
+                        <!-- Аудиоплеер сохранинной записи (скрыт, управляется кнопкой) -->
+                        <audio id="stage4-audio" class="hidden w-full mt-2" controls></audio>
+                        <!-- Распознанный текст ответа (показывается при воспроизведении
+                             или если запись недоступна) -->
+                        <p id="stage4-transcript"
+                           class="hidden rounded-xl border border-sky-200 bg-sky-50 py-3 px-4 text-base sm:text-lg font-semibold text-sky-800">
+                            <!-- Ты сказал: ... -->
+                        </p>
+                        <!-- Подсказка по ТЗ -->
+                        <p class="text-sm sm:text-base text-gray-500 max-w-md mx-auto pt-2">
+                            Сравните свой ответ с вопросом. Попробуйте использовать
+                            новые фразы дня.
+                        </p>
+                        <!-- Следующий вопрос: новый случайный вопрос из базовых фраз -->
+                        <button onclick="nextDialogueQuestion()"
+                                class="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 active:scale-95 transition text-white text-lg font-bold py-4 px-10 rounded-2xl shadow-md">
+                            Следующий вопрос →
+                        </button>
+                    </div>
+
+                    <!-- Сообщение об ошибке/непонятной речи -->
+                    <p id="stage4-error-msg"
+                       class="hidden rounded-xl border border-red-300 bg-red-50 py-3 px-4 text-sm sm:text-base font-semibold text-red-700">
+                        <!-- текст ошибки -->
+                    </p>
+
+                    <!-- Сообщение: браузер без распознавания / нет базовых фраз -->
+                    <p id="stage4-empty"
+                       class="hidden rounded-xl border border-amber-300 bg-amber-50 py-3 px-4 text-sm sm:text-base font-semibold text-amber-800">
+                        <!-- текст -->
+                    </p>
+                </div>
+            </div>
+
+            <!-- ===== ЗАГЛУШКА: ЭТАП 5 (Итог) ===== -->
+            <div id="stage5-placeholder" class="bg-white rounded-2xl shadow p-10 sm:p-16 text-center hidden">
                 <p class="text-xl sm:text-2xl font-bold text-gray-500">
-                    💬 Этап 4: Разговорная практика — в разработке
+                    🏁 Этап 5: Итог — в разработке
                 </p>
             </div>
         </section>
@@ -356,6 +454,9 @@
         const STAGE2_DURATION  = 300;  // локальный таймер Этапа 2: 5 минут
         const STAGE2_COUNTDOWN_SECONDS = 5; // отсчёт перед «Показать смысл»
         const STAGE3_DURATION  = 300;  // локальный таймер Этапа 3: 5 минут
+        const STAGE4_DURATION  = 300;  // локальный таймер Этапа 4: 5 минут
+        // АвтоСтоп записи ответа на Этапе 4: максимум 10 секунд (по ТЗ)
+        const STAGE4_MAX_RECORD_SECONDS = 10;
 
         // Идентификаторы интервалов setInterval, чтобы их можно было остановить
         let sessionIntervalId = null;
@@ -363,6 +464,8 @@
         let stage2IntervalId  = null; // локальный таймер этапа (5 минут)
         let stage2CountdownId = null; // обратный отсчёт 5 секунд
         let stage3IntervalId  = null; // локальный таймер Этапа 3 (5 минут)
+        let stage4IntervalId  = null; // локальный таймер Этапа 4 (5 минут)
+        let stage4AutoStopId  = null; // авто-остановка записи ответа через 10 с
 
         // Текущее оставшееся время таймеров (секунды)
         let sessionTimeLeft = SESSION_DURATION;
@@ -438,7 +541,7 @@
          * showStage(stageId) — переключает видимый этап внутри экрана урока.
          */
         function showStage(stageId) {
-            ['stage1-card', 'stage2-card', 'stage3-card', 'stage4-placeholder'].forEach(id => {
+            ['stage1-card', 'stage2-card', 'stage3-card', 'stage4-card', 'stage5-placeholder'].forEach(id => {
                 const el = document.getElementById(id);
                 if (!el) return;
                 if (id === stageId) {
@@ -465,18 +568,23 @@
         }
 
         /**
-         * speakSpanish(text) — озвучивает испанский текст через Web Speech API.
+         * speakSpanish(text, onend) — озвучивает испанский текст через Web Speech API.
          * Устанавливаем язык произношения 'es-ES' согласно ТЗ.
+         * Необязательный колбэк onend срабатывает после окончания произношения
+         * (используется на Этапе 4: запись ответа стартует сразу после вопроса).
          */
-        function speakSpanish(text) {
+        function speakSpanish(text, onend) {
             // Браузер может не поддерживать speechSynthesis — проверяем аккуратно
             if (!('speechSynthesis' in window)) {
                 console.warn('Web Speech API не поддерживается этим браузером.');
+                // Даже без озвучки продолжаем сценарий, чтобы урок не «завис»
+                if (onend) setTimeout(onend, 500);
                 return;
             }
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'es-ES';   // испанское произношение
             utterance.rate = 0.9;       // чуть медленнее обычного — для учебного эффекта
+            if (onend) utterance.onend = onend; // ждём конца фразы перед записью
             window.speechSynthesis.cancel(); // отменяем предыдущую озвучку, если есть
             window.speechSynthesis.speak(utterance);
         }
@@ -523,12 +631,17 @@
             clearInterval(stage2IntervalId);
             clearInterval(stage2CountdownId);
             clearInterval(stage3IntervalId);
+            clearInterval(stage4IntervalId);
+            clearTimeout(stage4AutoStopId);
             sessionIntervalId = null;
             stage1IntervalId = null;
             stage2IntervalId = null;
             stage2CountdownId = null;
             stage3IntervalId = null;
+            stage4IntervalId = null;
+            stage4AutoStopId = null;
             stopRecognition(); // на всякий случай прерываем активное распознавание
+            stopAnswerRecording(); // и запись ответа Этапа 4 (включая микрофон)
             document.getElementById('session-timer').classList.add('hidden');
         }
 
@@ -1096,16 +1209,25 @@
             }
         }
 
+        // Переопределённые обработчики распознавания: Этап 4 подставляет свои
+        // колбэки onResult/onEnd/onError, Этап 3 работает со значениями по умолчанию.
+        let options = {};
+
         /**
          * startRecognition() — запускает SpeechRecognition по ТЗ:
          * lang = 'es-ES', continuous = false, interimResults = false.
+         * onresult/onerror/onend можно переопределить через opts (Этап 4).
          */
-        function startRecognition() {
+        function startRecognition(opts) {
+            options = opts || {}; // помним, для какого этапа запустили
             const SR = getSpeechRecognition();
             if (!SR) return; // защита (экран с предупреждением уже показан)
 
-            // Скрываем предыдущий результат, если он был на экране
-            document.getElementById('stage3-result').classList.add('hidden');
+            // Скрываем предыдущий результат Этапа 3, только когда распознавание
+            // запускается самим Этапом 3 (у Этапа 4 свои панели и свои колбэки)
+            if (!options.onResult) {
+                document.getElementById('stage3-result').classList.add('hidden');
+            }
 
             recognition = new SR();
             recognition.lang           = 'es-ES';  // распознаём испанский
@@ -1115,20 +1237,29 @@
             // Успешное распознавание: берём текст и проверяем совпадение
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
-                evaluateAnswer(transcript);
+                if (options.onResult) {
+                    options.onResult(transcript); // кастомная обработка (Этап 4)
+                } else {
+                    evaluateAnswer(transcript);   // стандартная проверка (Этап 3)
+                }
             };
 
             // Конец распознавания (автоматически после реплики или по stop())
             recognition.onend = () => {
                 resetRecordButton();
+                if (options.onEnd) options.onEnd(); // уведомляем Этап 4
             };
 
             // Ошибки микрофона/сети/разрешений — показываем дружелюбное сообщение
             recognition.onerror = (event) => {
                 console.warn('Ошибка распознавания речи:', event.error);
                 resetRecordButton();
-                showStage3Result(false,
-                    'Не удалось распознать речь (' + event.error + '). Попробуйте ещё раз.');
+                if (options.onError) {
+                    options.onError(event.error); // кастомная обработка (Этап 4)
+                } else {
+                    showStage3Result(false,
+                        'Не удалось распознать речь (' + event.error + '). Попробуйте ещё раз.');
+                }
             };
 
             try {
@@ -1149,6 +1280,10 @@
         function stopRecognition() {
             if (recognition) {
                 try { recognition.stop(); } catch (e) { /* уже остановлено */ }
+            }
+            // Для Этапа 4 сбрасываем его собственный индикатор записи
+            if (options && typeof options.onEnd !== 'undefined') {
+                finishAnswerRecordingUI();
             }
             resetRecordButton();
         }
@@ -1212,17 +1347,334 @@
         }
 
         // ==========================================================
-        // ЭТАП 4: ЗАГЛУШКА (полная реализация — на следующих шагах)
+        // ЭТАП 4: РАЗГОВОРНАЯ ПРАКТИКА (5 минут) — диалог с самопрослушиванием
         // ==========================================================
 
+        // Текущий вопрос диалога (случайная базовая фраза, is_base_phrase === true)
+        let stage4Question = null;
+        // Счётчик заданных вопросов за прохождение этапа
+        let stage4QuestionCount = 0;
+        // Распознанный текст ответа ученика (для кнопки «Прослушать свой ответ»)
+        let stage4AnswerTranscript = '';
+        // Аудиозапись ответа (Blob из MediaRecorder) — если браузер её поддерживает
+        let stage4RecordingBlob = null;
+        // Экземпляр MediaRecorder и поток микрофона для текущей записи
+        let stage4MediaRecorder = null;
+        let stage4MicStream = null;
+        // Флаг: идёт ли запись ответа прямо сейчас
+        let stage4IsRecording = false;
+
         /**
-         * startStage4() — функция-заглушка: скрывает Этап 3 и показывает
-         * сообщение о том, что этап ещё в разработке.
+         * stopStage4Timers() — останавливает локальный таймер Этапа 4
+         * и авто-остановку записи (10 секунд).
+         */
+        function stopStage4Timers() {
+            clearInterval(stage4IntervalId);
+            clearTimeout(stage4AutoStopId);
+            stage4IntervalId = null;
+            stage4AutoStopId = null;
+        }
+
+        /**
+         * startStage4() — переход с Этапа 3 на Этап 4:
+         *   - останавливает таймеры/распознавание предыдущего этапа;
+         *   - скрывает карточку Этапа 3 и показывает карточку Этапа 4;
+         *   - запускает локальный таймер на 5 минут (глобальный 20-минутный
+         *     таймер сессии продолжает идти в фоне — мы его не трогаем);
+         *   - показывает исходный экран «Разговорная практика» с кнопкой
+         *     «Начать диалог».
          */
         function startStage4() {
             stopStage3Timers();
             stopRecognition();
-            showStage('stage4-placeholder');
+            stopStage4Timers();
+
+            // Показываем экран Этапа 4 (Этап 3 будет автоматически скрыт)
+            showStage('stage4-card');
+
+            // --- локальный таймер этапа: 5 минут ---
+            let stage4TimeLeft = STAGE4_DURATION;
+            document.getElementById('stage4-timer-text').textContent =
+                formatTime(stage4TimeLeft);
+
+            stage4IntervalId = setInterval(() => {
+                stage4TimeLeft--;
+                document.getElementById('stage4-timer-text').textContent =
+                    formatTime(stage4TimeLeft);
+
+                if (stage4TimeLeft <= 0) {
+                    // Время этапа вышло — убираем всё активное и идём дальше
+                    stopStage4Timers();
+                    stopAnswerRecording();
+                    startStage5();
+                }
+            }, 1000);
+
+            // Исходное состояние этапа: виден подэкран приветствия
+            stage4QuestionCount = 0;
+            resetDialogueUI();
+        }
+
+        /**
+         * resetDialogueUI() — возвращает интерфейс Этапа 4 к стартовому
+         * состоянию (подэкран «Начать диалог»).
+         */
+        function resetDialogueUI() {
+            document.getElementById('stage4-intro').classList.remove('hidden');
+            document.getElementById('stage4-dialogue').classList.add('hidden');
+        }
+
+        /**
+         * pickRandomBasePhrase() — выбирает СЛУЧАЙНУЮ базовую фразу
+         * (is_base_phrase === true) из массива phrases.
+         * Если базовых фраз нет — вернёт null.
+         */
+        function pickRandomBasePhrase() {
+            const basePhrases = phrases.filter(p => p.is_base_phrase === true);
+            if (basePhrases.length === 0) return null;
+            return basePhrases[Math.floor(Math.random() * basePhrases.length)];
+        }
+
+        /**
+         * startDialogue() — обработчик кнопки «Начать диалог»:
+         * переключает на подэкран диалога и задаёт первый вопрос.
+         */
+        function startDialogue() {
+            document.getElementById('stage4-intro').classList.add('hidden');
+            document.getElementById('stage4-dialogue').classList.remove('hidden');
+            askNextQuestion();
+        }
+
+        /**
+         * askNextQuestion() — один цикл диалога по ТЗ:
+         *   1) берём случайную базовую фразу-вопрос;
+         *   2) озвучиваем её через speechSynthesis (lang = 'es-ES');
+         *   3) показываем текст вопроса на экране;
+         *   4) как только озвучка закончится — автоматически включаем
+         *      микрофон для записи ответа (startAnswerRecording).
+         */
+        function askNextQuestion() {
+            // Прячем вспомогательные панели
+            document.getElementById('stage4-after').classList.add('hidden');
+            document.getElementById('stage4-error-msg').classList.add('hidden');
+            document.getElementById('stage4-empty').classList.add('hidden');
+
+            // Проверка поддержки распознавания речи (по ТЗ — с кнопкой пропуска)
+            if (!getSpeechRecognition()) {
+                document.getElementById('stage4-question-es').textContent = '';
+                document.getElementById('stage4-listening').classList.add('hidden');
+                document.getElementById('stage4-empty').textContent =
+                    '⚠️ Ваш браузер не поддерживает распознавание речи. ' +
+                    'Пожалуйста, используйте Chrome';
+                document.getElementById('stage4-empty').classList.remove('hidden');
+                return;
+            }
+
+            // Случайная базовая фраза-вопрос
+            stage4Question = pickRandomBasePhrase();
+            if (!stage4Question) {
+                document.getElementById('stage4-question-es').textContent = '';
+                document.getElementById('stage4-listening').classList.add('hidden');
+                document.getElementById('stage4-empty').textContent =
+                    'Нет базовых фраз для диалога. Переходим к Этапу 5…';
+                document.getElementById('stage4-empty').classList.remove('hidden');
+                setTimeout(() => {
+                    stopStage4Timers();
+                    startStage5();
+                }, 3000);
+                return;
+            }
+
+            stage4QuestionCount++;
+            stage4AnswerTranscript = '';
+            stage4RecordingBlob = null;
+            document.getElementById('stage4-progress').textContent =
+                'Вопрос ' + stage4QuestionCount;
+            document.getElementById('stage4-transcript').classList.add('hidden');
+            document.getElementById('stage4-audio').classList.add('hidden');
+            document.getElementById('stage4-audio').removeAttribute('src');
+
+            // Озвучиваем вопрос; сразу после окончания озвучки включаем микрофон
+            speakSpanish(stage4Question.spanish, () => startAnswerRecording());
+            // Текст вопроса показываем на экране (перевод остаётся скрыт)
+            document.getElementById('stage4-question-es').textContent =
+                stage4Question.spanish;
+        }
+
+        /**
+         * startAnswerRecording() — автоматически включает микрофон:
+         *   - запускает SpeechRecognition (через общий startRecognition с
+         *     кастомными колбэками для Этапа 4);
+         *   - параллельно пытается начать аудиозапись (MediaRecorder),
+         *     чтобы ученик мог прослушать свой голос;
+         *   - показывает пульсирующий индикатор «Слушаю ваш ответ...»;
+         *   - ставит авто-стоп через 10 секунд (по ТЗ).
+         */
+        async function startAnswerRecording() {
+            // Сбрасываем данные предыдущего ответа
+            stage4AnswerTranscript = '';
+            stage4RecordingBlob = null;
+            stage4IsRecording = true;
+
+            // Визуальная индикация записи
+            const listening = document.getElementById('stage4-listening');
+            listening.classList.remove('hidden');
+            listening.classList.add('flex');
+            document.getElementById('stage4-after').classList.add('hidden');
+            document.getElementById('stage4-error-msg').classList.add('hidden');
+
+            // Запуск распознавания речи с обработчиками этого этапа
+            startRecognition({
+                onResult: (transcript) => { stage4AnswerTranscript = transcript; },
+                onError:  (err) => {
+                    showErrorOnStage4('Не удалось распознать речь (' + err +
+                        '). Попробуйте следующий вопрос.');
+                },
+                onEnd:    () => { finishAnswerRecordingUI(); }
+            });
+
+            // Пытаемся включить запись звука (Вариант А — для самопрослушивания).
+            // Если микрофон/запись недоступны — не страшно: покажем текст ответа.
+            try {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia &&
+                    typeof MediaRecorder !== 'undefined') {
+                    stage4MicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const chunks = [];
+                    stage4MediaRecorder = new MediaRecorder(stage4MicStream);
+                    stage4MediaRecorder.ondataavailable = (e) => {
+                        if (e.data && e.data.size > 0) chunks.push(e.data);
+                    };
+                    stage4MediaRecorder.onstop = () => {
+                        // Собираем все чанки в один Blob для последующего воспроизведения
+                        stage4RecordingBlob = new Blob(chunks, { type: stage4MediaRecorder.mimeType || 'audio/webm' });
+                    };
+                    stage4MediaRecorder.start();
+                }
+            } catch (e) {
+                console.warn('Аудиозапись недоступна:', e);
+                stage4MediaRecorder = null;
+                stage4MicStream = null;
+            }
+
+            // Авто-остановка: ученик сказал — или прошло 10 секунд (по ТЗ)
+            clearTimeout(stage4AutoStopId);
+            stage4AutoStopId = setTimeout(() => {
+                stopAnswerRecording();
+            }, STAGE4_MAX_RECORD_SECONDS * 1000);
+        }
+
+        /**
+         * stopAnswerRecording() — остановка записи: вызывается когда ученик
+         * закончил говорить (авто-стоп 10 с / конец распознавания) или по
+         * кнопке «Остановить запись».
+         */
+        function stopAnswerRecording() {
+            // Флаг сбрасываем ДО остановки распознавания: его async-колбэк onend
+            // тоже вызывает эту функцию, и повторный вызов должен стать no-op
+            if (!stage4IsRecording) return;
+            stage4IsRecording = false;
+
+            clearTimeout(stage4AutoStopId);
+            stage4AutoStopId = null;
+
+            // Останавливаем распознавание речи напрямую у экземпляра
+            // (без stopRecognition(), чтобы не трогать индикаторы Этапа 3)
+            if (recognition) {
+                try { recognition.stop(); } catch (e) { /* уже остановлено */ }
+            }
+            // Больше не считаем текущие options «этаповскими» — иначе отложенный
+            // onend распознавания повторно дёрнул бы обработчик записи Этапа 4
+            options = {};
+
+            // Останавливаем аудиозапись и освобождаем микрофон
+            try {
+                if (stage4MediaRecorder && stage4MediaRecorder.state !== 'inactive') {
+                    stage4MediaRecorder.stop();
+                }
+            } catch (e) { /* игнорируем */ }
+            if (stage4MicStream) {
+                stage4MicStream.getTracks().forEach(t => t.stop());
+                stage4MicStream = null;
+            }
+
+            finishAnswerRecordingUI();
+        }
+
+        /**
+         * finishAnswerRecordingUI() — прячет индикатор «Слушаю ваш ответ...»
+         * и показывают панель с кнопкой «Прослушать свой ответ».
+         * Идемпотентна: можно вызывать многократно.
+         */
+        function finishAnswerRecordingUI() {
+            stage4IsRecording = false;
+            const listening = document.getElementById('stage4-listening');
+            if (listening) {
+                listening.classList.add('hidden');
+                listening.classList.remove('flex');
+            }
+            // Панель «Прослушать свой ответ» показываем только пока открыт
+            // подэкран диалога (после перехода на другой этап — no-op)
+            if (!document.getElementById('stage4-dialogue').classList.contains('hidden')) {
+                document.getElementById('stage4-after').classList.remove('hidden');
+            }
+        }
+
+        /**
+         * showErrorOnStage4(text) — показывает красное сообщение об ошибке
+         * на экране диалога (например, при отказе доступа к микрофону).
+         */
+        function showErrorOnStage4(text) {
+            const el = document.getElementById('stage4-error-msg');
+            el.textContent = text;
+            el.classList.remove('hidden');
+        }
+
+        /**
+         * playOwnAnswer() — обработчик кнопки «Прослушать свой ответ»:
+         *   - если запись (Blob) есть и <audio> поддерживается — воспроизводим
+         *     собственный голос ученика;
+         *   - иначе показываем распознанный текст ответа (фолбэк по ТЗ).
+         */
+        function playOwnAnswer() {
+            const audio = document.getElementById('stage4-audio');
+            const transcriptEl = document.getElementById('stage4-transcript');
+
+            if (stage4RecordingBlob) {
+                // Воспроизведение сохранённой аудиозаписи
+                audio.src = URL.createObjectURL(stage4RecordingBlob);
+                audio.classList.remove('hidden');
+                audio.play().catch(err => console.warn('Не удалось воспроизвести запись:', err));
+            } else if (stage4AnswerTranscript) {
+                // Запись недоступна — показываем распознанный текст
+                transcriptEl.textContent = 'Ты сказал: "' + stage4AnswerTranscript + '"';
+                transcriptEl.classList.remove('hidden');
+            } else {
+                showErrorOnStage4('Ответ не был распознан. Нажмите «Следующий вопрос» и попробуйте ещё раз.');
+            }
+        }
+
+        /**
+         * nextDialogueQuestion() — кнопка «Следующий вопрос»: повторяет цикл
+         * диалога (новый случайный вопрос из базовых фраз).
+         */
+        function nextDialogueQuestion() {
+            stopAnswerRecording(); // гарантированно выключаем микрофон
+            askNextQuestion();
+        }
+
+        // ==========================================================
+        // ЭТАП 5: ЗАГЛУШКА (полная реализация — на следующих шагах)
+        // ==========================================================
+
+        /**
+         * startStage5() — функция-заглушка: скрывает Этап 4 и показывает
+         * сообщение о том, что итоговый этап ещё в разработке.
+         */
+        function startStage5() {
+            stopStage4Timers();
+            stopAnswerRecording();
+            stopRecognition();
+            showStage('stage5-placeholder');
         }
 
         // ==========================================================
