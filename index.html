@@ -48,7 +48,8 @@
 
         <!-- ========== ЭКРАН 0: СТАРТОВЫЙ ЭКРАН ========== -->
         <section id="screen-start" class="bg-white rounded-2xl shadow p-6 sm:p-8 text-center">
-            <h2 class="text-lg sm:text-xl font-semibold mb-2">Добро пожаловать! 🇪🇸</h2>
+            <!-- ПРОБЛЕМА 2 (исправлено): убраны лишние символы после "Добро пожаловать!" -->
+            <h2 class="text-lg sm:text-xl font-semibold mb-2">Добро пожаловать!</h2>
             <p class="text-gray-500 text-sm sm:text-base mb-6">
                 Нажмите кнопку ниже, чтобы запустить 20-минутный урок.
                 Первый этап — повторение уже изученных фраз.
@@ -176,7 +177,7 @@
 
                 <!-- Сообщение, если новых фраз (working) для аудирования нет -->
                 <p id="stage2-empty" class="hidden text-gray-500 text-sm sm:text-base py-6">
-                    Нет новых фраз для аудирования. Переходим к Этапу 3…
+                    Все фразы на сегодня пройдены. Переходим к Этапу 3…
                 </p>
             </div>
 
@@ -424,7 +425,8 @@
             },
             {
                 id: 3,
-                spanish: "Gracias mucho.",
+                // ПРОБЛЕМА 3 (исправлено): грамматически верный порядок слов
+                spanish: "Muchas gracias.",
                 russian: "Большое спасибо.",
                 situation: "В кафе или магазине",
                 status: "new",        // ещё одна новая фраза
@@ -445,6 +447,147 @@
                 spanish: "No entiendo.",
                 russian: "Я не понимаю.",
                 situation: "Когда речь слишком быстрая",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+
+            // ======================================================
+            // ПРОБЛЕМА 4 (исправлено): расширение стартовой базы до 20 фраз.
+            // 15 дополнительных разговорных фраз для начинающих.
+            // Все — со статусом "new" и is_base_phrase: false.
+            // ======================================================
+            {
+                id: 6,
+                spanish: "Buenos días.",
+                russian: "Доброе утро.",
+                situation: "Ты встречаешь кого-то утром",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 7,
+                spanish: "Buenas tardes.",
+                russian: "Добрый день.",
+                situation: "Ты встречаешь кого-то днем",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 8,
+                spanish: "Buenas noches.",
+                russian: "Добрый вечер / доброй ночи.",
+                situation: "Ты встречаешь кого-то вечером",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 9,
+                spanish: "Por favor.",
+                russian: "Пожалуйста.",
+                situation: "Ты о чем-то просишь",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 10,
+                spanish: "De nada.",
+                russian: "Не за что.",
+                situation: "Тебе говорят спасибо",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 11,
+                spanish: "Lo siento.",
+                russian: "Извини.",
+                situation: "Ты хочешь извиниться",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 12,
+                spanish: "No entiendo.",
+                russian: "Я не понимаю.",
+                situation: "Ты не понял, что тебе сказали",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 13,
+                spanish: "¿Puedes repetir?",
+                russian: "Можешь повторить?",
+                situation: "Ты не расслышал",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 14,
+                spanish: "¿Cómo estás?",
+                russian: "Как дела?",
+                situation: "Ты спрашиваешь о самочувствии",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 15,
+                spanish: "Estoy bien.",
+                russian: "Я в порядке.",
+                situation: "Ты отвечаешь на вопрос о самочувствии",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 16,
+                spanish: "¿Qué hora es?",
+                russian: "Который час?",
+                situation: "Ты хочешь узнать время",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 17,
+                spanish: "Tengo hambre.",
+                russian: "Я голоден.",
+                situation: "Ты хочешь есть",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 18,
+                spanish: "Tengo sed.",
+                russian: "Я хочу пить.",
+                situation: "Ты хочешь пить",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 19,
+                spanish: "¿Dónde está el baño?",
+                russian: "Где туалет?",
+                situation: "Ты ищешь туалет",
+                status: "new",
+                is_base_phrase: false,
+                last_reviewed: null
+            },
+            {
+                id: 20,
+                spanish: "Me gusta.",
+                russian: "Мне нравится.",
+                situation: "Ты выражаешь симпатию к чему-то",
                 status: "new",
                 is_base_phrase: false,
                 last_reviewed: null
@@ -882,13 +1025,21 @@
                 }
             }, 1000);
 
-            // --- набор фраз: 2 новые фразы текущего дня ('working') ---
-            const workingPhrases = phrases.filter(p => p.status === 'working');
-            stage2Queue = shuffleAndTake(workingPhrases, 2);
+            // --- набор фраз для аудирования (ПРОБЛЕМА 1, исправлено) ---
+            // Приоритет: 1) свежие фразы со статусом 'new';
+            //             2) если их нет — фразы 'working' (активированные сегодня);
+            //             3) если и их нет — «Все фразы на сегодня пройдены» + автопереход.
+            const newPhrases = phrases.filter(p => p.status === 'new');
+            if (newPhrases.length > 0) {
+                stage2Queue = shuffleAndTake(newPhrases, 2);
+            } else {
+                const workingPhrases = phrases.filter(p => p.status === 'working');
+                stage2Queue = shuffleAndTake(workingPhrases, 2);
+            }
             stage2Index = 0;
 
             if (stage2Queue.length === 0) {
-                // Нет фраз со статусом 'working': сообщение + автопереход через 3 сек
+                // Ни 'new', ни 'working' фраз нет: сообщение + автопереход через 3 сек
                 document.getElementById('stage2-progress').classList.add('hidden');
                 document.getElementById('stage2-btn-play').classList.add('hidden');
                 document.getElementById('stage2-empty').classList.remove('hidden');
