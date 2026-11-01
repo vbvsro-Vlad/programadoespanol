@@ -326,6 +326,11 @@
                            class="hidden rounded-xl border border-sky-200 bg-sky-50 py-3 px-4 text-base sm:text-lg font-semibold text-sky-800">
                             <!-- Ты сказал: ... -->
                         </p>
+                        <!-- Результат мягкой проверки ответа (зелёный/красный) -->
+                        <p id="stage4-check-result"
+                           class="hidden rounded-xl py-3 px-4 text-base sm:text-lg font-bold">
+                            <!-- ¡Correcto! / Попробуй ещё раз... -->
+                        </p>
                         <!-- Подсказка по ТЗ -->
                         <p class="text-sm sm:text-base text-gray-500 max-w-md mx-auto pt-2">
                             Сравните свой ответ с вопросом. Попробуйте использовать
@@ -1045,6 +1050,64 @@
         }
 
         /**
+         * normalizeSpanishText(text) — «мягкая» нормализация испанского текста
+         * для сравнения с распознаванием речи (работает для ЛЮБЫХ фраз,
+         * без словарей и привязки к конкретным словам):
+         *   1) приводит весь текст к нижнему регистру;
+         *   2) убирает испанские ударения (á é í ó ú -> a e i o u);
+         *   3) заменяет букву 'ñ' на 'n' для упрощения сравнения;
+         *   4) убирает немую 'h' в начале слов ("hasta" == "asta",
+         *      т.к. браузерное распознавание часто её не слышит);
+         *   5) удаляет знаки препинания (¿ ? ¡ ! . ,);
+         *   6) схлопывает повторяющиеся пробелы и обрезает строку по краям.
+         */
+        function normalizeSpanishText(text) {
+            // 5) сначала заменяем знаки препинания на пробелы — чтобы границы
+            //    слов были корректными для следующего шага ("¿hoy?" -> " hoy ")
+            let s = String(text || '')
+                .toLowerCase()                        // 1) нижний регистр
+                .replace(/[¿?¡!.,;:"'()«»…]/g, ' ');  // 5) пунктуация -> пробел
+            s = s.normalize('NFD')                    // 2) разделяем букву и диакритику
+                .replace(/[\u0300-\u036f]/g, '')      //    убираем ударения á->a и т.п.
+                .replace(/ñ/g, 'n');                  // 3) ñ -> n (после снятия NFD)
+            // 4) немая 'h' в НАЧАЛЕ слов: hasta -> asta (внутри слова h остаётся:
+            //    alcohol не превращаем в alchool)
+            s = s.replace(/\bh(?=\w)/g, '');
+            // 6) схлопываем повторяющиеся пробелы и обрезаем строку по краям
+            return s.replace(/\s+/g, ' ').trim();
+        }
+
+        /**
+         * isAnswerAccepted(userText, targetPhrase) — мягкая проверка ответа
+         * ученика на Этапе 4 (Разговорная практика). Логика по ТЗ:
+         *   - нормализуем обе строки через normalizeSpanishText();
+         *   - разбиваем целевую фразу на слова и берём «значимые» —
+         *     длиной строго больше 3 букв;
+         *   - если НОРМАЛИЗОВАННЫЙ ответ пользователя содержит хотя бы одно
+         *     такое ключевое слово — ответ считается правильным.
+         * Возвращает true (совпадение найдено) или false.
+         */
+        function isAnswerAccepted(userText, targetPhrase) {
+            const userNorm = normalizeSpanishText(userText);
+            if (!userNorm) return false;
+
+            // Ключевые слова целевой фразы: значимые (len > 3), после нормализации
+            const keyWords = normalizeSpanishText(targetPhrase)
+                .split(' ')
+                .filter(Boolean)
+                .filter(w => w.length > 3);
+
+            // Если в фразе нет длинных слов — сравниваем целые нормализованные
+            // строки на частичное совпадение (страховка для очень коротких фраз)
+            if (keyWords.length === 0) {
+                return userNorm.includes(normalizeSpanishText(targetPhrase));
+            }
+
+            // Достаточно одного ключевого слова — это и есть «мягкая» проверка
+            return keyWords.some(word => userNorm.includes(word));
+        }
+
+        /**
          * checkPhraseMatch(target, spoken) — упрощённая проверка по ТЗ:
          *   1) считаем долю «основных» слов целевой фразы (длина >= 3 символа),
          *      которые встречаются в распознанном тексте;
@@ -1527,6 +1590,8 @@
             document.getElementById('stage4-progress').textContent =
                 'Вопрос ' + stage4QuestionCount;
             document.getElementById('stage4-transcript').classList.add('hidden');
+            // Скрываем результат проверки от предыдущего вопроса
+            document.getElementById('stage4-check-result').classList.add('hidden');
             const audioEl = document.getElementById('stage4-audio');
             audioEl.classList.add('hidden');
             audioEl.removeAttribute('src');
@@ -1749,6 +1814,41 @@
         }
 
         /**
+         * checkStage4Answer() — мягкая проверка ответа ученика на Этапе 4.
+         * Использует isAnswerAccepted(): нормализует и распознанный текст,
+         * и целевую фразу, и ищет хотя бы одно ключевое слово (len > 3).
+         *   - совпадение найдено -> зелёное «¡Correcto! (Правильно!)»;
+         *   - нет -> красное «Попробуй ещё раз. Правильный вариант: [фраза]».
+         * Если распознавание не дало текста (пустой ответ) — блок проверки
+         * скрывается, чтобы не «штрафовать» за молчание/недоступный API.
+         */
+        function checkStage4Answer() {
+            const resultEl = document.getElementById('stage4-check-result');
+            if (!resultEl || !stage4Question) return;
+
+            // Пустой распознанный текст — ничего не показываем
+            if (!stage4AnswerTranscript) {
+                resultEl.classList.add('hidden');
+                return;
+            }
+
+            if (isAnswerAccepted(stage4AnswerTranscript, stage4Question.spanish)) {
+                // Зелёное сообщение об успехе
+                resultEl.textContent = '✅ ¡Correcto! (Правильно!)';
+                resultEl.className =
+                    'rounded-xl border border-green-300 bg-green-50 py-3 px-4 ' +
+                    'text-base sm:text-lg font-bold text-green-700';
+            } else {
+                // Красное сообщение с правильным вариантом
+                resultEl.textContent = '❌ Попробуй ещё раз. Правильный вариант: ' +
+                    '"' + stage4Question.spanish + '"';
+                resultEl.className =
+                    'rounded-xl border border-red-300 bg-red-50 py-3 px-4 ' +
+                    'text-base sm:text-lg font-bold text-red-700';
+            }
+        }
+
+        /**
          * playOwnAnswer() — обработчик кнопки «Прослушать свой ответ»:
          *   - если запись (Blob) есть — воспроизводим собственный голос ученика
          *     через скрытый <audio> (URL.createObjectURL + play());
@@ -1765,6 +1865,10 @@
                 transcriptEl.textContent = 'Ты сказал: "' + stage4AnswerTranscript + '"';
                 transcriptEl.classList.remove('hidden');
             }
+
+            // Мягкая проверка ответа (нормализация + ключевые слова) —
+            // результат появится под кнопками сразу после прослушивания
+            checkStage4Answer();
 
             if (stage4RecordingBlob && stage4RecordingBlob.size > 0) {
                 // Освобождаем URL предыдущего воспроизведения, затем создаём новый
