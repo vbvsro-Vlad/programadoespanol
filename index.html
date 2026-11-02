@@ -1940,6 +1940,18 @@
             }
 
             // --- Шаг 2: распознавание речи — параллельно, только для текста ---
+            // ИСПРАВЛЕНИЕ (ТЗ п.4): перед запуском гарантированно останавливаем
+            // старый экземпляр SpeechRecognition напрямую (без stopRecognition(),
+            // который дёрнул бы индикаторы этапов), чтобы он не накапливал
+            // результаты предыдущего вопроса и не конфликтовал с новым
+            // экземпляром при быстром повторном нажатии.
+            if (recognition) {
+                try { recognition.abort(); } catch (e) { /* уже остановлено */ }
+                recognition.onresult = null;
+                recognition.onerror  = null;
+                recognition.onend    = null;
+                recognition = null;
+            }
             startRecognition({
                 onResult: (transcript) => { stage4AnswerTranscript = transcript; },
                 onError:  (err) => {
@@ -2024,6 +2036,18 @@
                 stage4MicStream = null;
             }
 
+            // ИСПРАВЛЕНИЕ БАГА (ТЗ п.3): проверка ответа выполняется СРАЗУ
+            // после завершения записи — для КАЖДОГО вопроса, а не только
+            // после нажатия «Прослушать свой ответ» (так было раньше:
+            // зелёное/красное сообщение и распознанный текст появлялись
+            // лишь на первом вопросе после прослушивания).
+            checkStage4Answer();
+            if (stage4AnswerTranscript) {
+                const transcriptEl = document.getElementById('stage4-transcript');
+                transcriptEl.textContent = 'Браузер услышал: "' + stage4AnswerTranscript + '"';
+                transcriptEl.classList.remove('hidden');
+            }
+
             finishAnswerRecordingUI();
         }
 
@@ -2069,12 +2093,24 @@
             const resultEl = document.getElementById('stage4-check-result');
             if (!resultEl || !stage4Question) return;
 
-            // Пустой распознанный текст — ничего не показываем
+            // ИСПРАВЛЕНИЕ БАГА: пустой ответ больше НЕ прячем блок молча —
+            // показываем понятную подсказку, чтобы ученик понимал, что
+            // распознавание не услышало речь (иначе казалось, что «проверка
+            // не работает на втором и последующих вопросах»).
             if (!stage4AnswerTranscript) {
-                resultEl.classList.add('hidden');
+                resultEl.textContent = '🎤 Речь не распознана — нажмите ' +
+                    '"▶️ Прослушать свой ответ" или "Следующий вопрос".';
+                resultEl.className =
+                    'rounded-xl border border-amber-300 bg-amber-50 py-3 px-4 ' +
+                    'text-base sm:text-lg font-bold text-amber-800';
+                resultEl.classList.remove('hidden');
                 return;
             }
 
+            // Единая мягкая проверка для Этапов 3 и 4: нормализация текста
+            // (регистр, ударения, ñ→n, немая h, пунктуация) + ключевые слова.
+            // Вызывается КАЖДЫЙ РАЗ после завершения записи — состояние
+            // функции не зависит от номера вопроса.
             if (isAnswerAccepted(stage4AnswerTranscript, stage4Question.spanish)) {
                 // Зелёное сообщение об успехе
                 resultEl.textContent = '✅ ¡Correcto! (Правильно!)';
@@ -2082,13 +2118,15 @@
                     'rounded-xl border border-green-300 bg-green-50 py-3 px-4 ' +
                     'text-base sm:text-lg font-bold text-green-700';
             } else {
-                // Красное сообщение с правильным вариантом
-                resultEl.textContent = '❌ Попробуй ещё раз. Правильный вариант: ' +
+                // Красное сообщение + то, что услышал браузер, + правильный вариант
+                resultEl.textContent = '❌ Попробуй ещё раз. Браузер услышал: ' +
+                    "'" + stage4AnswerTranscript + "'. Правильный вариант: " +
                     '"' + stage4Question.spanish + '"';
                 resultEl.className =
                     'rounded-xl border border-red-300 bg-red-50 py-3 px-4 ' +
                     'text-base sm:text-lg font-bold text-red-700';
             }
+            resultEl.classList.remove('hidden');
         }
 
         /**
@@ -2136,11 +2174,70 @@
         }
 
         /**
-         * nextDialogueQuestion() — кнопка «Следующий вопрос»: повторяет цикл
-         * диалога (новый случайный вопрос из базовых фраз).
+         * nextDialogueQuestion() — кнопка «Следующий вопрос»: delegate к
+         * handleNextQuestion() (см. ниже). Оставлено имя-обёртка, чтобы не
+         * менять HTML и старые ссылки.
          */
         function nextDialogueQuestion() {
-            stopAnswerRecording(); // гарантированно выключаем микрофон
+            handleNextQuestion();
+        }
+
+        /**
+         * handleNextQuestion() — полный цикл «следующего вопроса» на Этапе 4
+         * (ИСПРАВЛЕНИЕ БАГА: раньше проверка и текст распознавания работали
+         * только для первого вопроса).
+         *
+         * Порядок по ТЗ:
+         *   1) останавливаем запись предыдущего ответа (гарантированно
+         *      выключаем микрофон);
+         *   2) ПОЛНОСТЬЮ сбрасываем переменные предыдущего ответа:
+         *      распознанный текст = '', аудио-Blob = null, object-URL, чанки;
+         *   3) очищаем UI: скрываем старые сообщения «Правильно/Неправильно»,
+         *      «Ты сказал: ...», плеер, ошибки;
+         *   4) выбираем НОВЫЙ случайный базовый вопрос (is_base_phrase: true);
+         *   5) озвучиваем его через speechSynthesis (lang='es-ES');
+         *   6) показываем текст вопроса на экране;
+         *   7) сразу после озвучки автоматически запускаем запись
+         *      (MediaRecorder + SpeechRecognition).
+         *
+         * Ключевой фикс: очистка transcript-элемента и снятие src с <audio>.
+         * Без этого браузер продолжал проигрывать СТАРЫЙ audio-URL, а
+         * отложенный onstop старого MediaRecorder перетирал Blob нового
+         * вопроса — поэтому «Прослушать свой ответ» и проверка вели себя
+         * так, будто ничего не изменилось.
+         */
+        async function handleNextQuestion() {
+            // 1) Гарантированно останавливаем микрофон предыдущей записи
+            //    (await — чтобы старый onstop отработал ДО начала новой)
+            await stopAnswerRecording();
+
+            // 2) Полный сброс переменных предыдущего ответа
+            stage4AnswerTranscript = '';   // recognizedText = ''
+            stage4RecordingBlob = null;    // audioBlob = null
+            releaseStage4AudioUrl();
+            stage4AudioChunks = [];
+            stage4GotAudioData = false;
+            recorderResolve = null;
+
+            // 3) Очищаем UI: старые результаты больше нигде не мелькнут
+            const transcriptEl = document.getElementById('stage4-transcript');
+            transcriptEl.textContent = '';
+            transcriptEl.classList.add('hidden');
+
+            const resultEl = document.getElementById('stage4-check-result');
+            resultEl.textContent = '';
+            resultEl.classList.add('hidden');
+
+            const audioEl = document.getElementById('stage4-audio');
+            audioEl.pause();                 // стоп возможного воспроизведения
+            audioEl.removeAttribute('src');  // снимаем ссылку на старый Blob
+            audioEl.load();                  // реально очищаем буфер
+            audioEl.classList.add('hidden');
+
+            // 4–7) Новый случайный вопрос: озвучка → текст на экране →
+            //        автозапуск записи. Внутри askNextQuestion() выполняется
+            //        повторный сброс состояния и скрытие панелей — это
+            //        идемпотентная подготовка цикла диалога.
             askNextQuestion();
         }
 
