@@ -600,13 +600,34 @@
         }
 
         function mergeDefaultPhrases() {
-            const existingIds = new Set(phrases.map(p => p.id));
-            const missing = DEFAULT_PHRASES.filter(p => !existingIds.has(p.id));
-            if (missing.length > 0) {
-                phrases = phrases.concat(missing);
-                saveData();
+    const existingIds = new Set(phrases.map(p => p.id));
+    const missing = DEFAULT_PHRASES.filter(p => !existingIds.has(p.id));
+    
+    // Добавляем недостающие фразы
+    if (missing.length > 0) {
+        phrases = phrases.concat(missing);
+    }
+    
+    // ВАЖНО: обновляем поля acceptable_answers для существующих фраз,
+    // если их там нет (исправление бага кэширования localStorage)
+    let updated = false;
+    DEFAULT_PHRASES.forEach(defaultPhrase => {
+        if (defaultPhrase.acceptable_answers && defaultPhrase.acceptable_answers.length > 0) {
+            const existing = phrases.find(p => p.id === defaultPhrase.id);
+            if (existing) {
+                if (!existing.acceptable_answers || existing.acceptable_answers.length === 0) {
+                    existing.acceptable_answers = defaultPhrase.acceptable_answers;
+                    updated = true;
+                }
             }
         }
+    });
+    
+    // Сохраняем, если были изменения
+    if (missing.length > 0 || updated) {
+        saveData();
+    }
+}
 
         function formatTime(seconds) {
             const m = Math.floor(seconds / 60);
